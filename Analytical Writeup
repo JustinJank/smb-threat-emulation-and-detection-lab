@@ -1,0 +1,113 @@
+Analytical Writeup to better understanding and detect SMB based lateral movement in enterprise networks
+
+What’s happening? >
+Server Message Block (SMB) is a core protocol used for file sharing and remote access in Windows environments. Because of its deep integration into enterprise systems, it is frequently abused by attackers to move laterally after initial access.
+
+In observed attack scenarios, adversaries leverage SMB to:
+* Enumerate network shares
+* Authenticate to remote systems
+* Execute commands or transfer payloads
+
+This activity is commonly associated with post-compromise frameworks and tooling, including Metasploit.
+
+Why it works (root cause) >
+The risk stems from how SMB and Windows authentication mechanisms are designed.
+
+SMB relies heavily on:
+* The NTLM authentication protocol
+* Implicit trust relationships within domains
+* Reusable credentials (passwords or hashes)
+
+In many environments...
+* Systems trust each other by default
+* Credentials are reused across multiple hosts
+* Authentication attempts are not tightly restricted
+
+This creates an opportunity for attackers to...
+* Reuse captured credentials
+* Authenticate across multiple systems
+* Expand access without needing new exploits
+
+The issue is not a single vulnerability, but a combination of:
+Protocol design + credential reuse + network trust assumptions
+
+How attackers leverage SMB...
+Once inside a network, attackers typically follow a pattern >
+
+Discovery
+Identify hosts and available SMB shares
+Credential use or reuse
+Attempt authentication using known credentials or hashes
+Lateral movement
+Access administrative shares (e.g., C$, ADMIN$)
+Execute commands remotely
+Drop tools or payloads
+Escalation and persistence
+Move toward high-value systems (e.g., domain controllers)
+
+This technique is widely used in:
+* Ransomware campaigns
+* Red team operations
+* Post-exploitation frameworks
+
+What it looks like in traffic and logs >
+In network traffic and logs, SMB abuse often appears as:
+
+Network-level indicators
+Repeated SMB session setups across multiple hosts
+Authentication attempts to many systems in a short time
+Large volumes of SMB traffic between internal systems
+Host-level indicators
+Logon events using SMB (Type 3 logons in Windows)
+Access to administrative shares
+Remote service creation or command execution
+
+In packet analysis tools like Wireshark, this may include:
+
+* SMB negotiation requests
+* NTLM authentication exchanges
+* File or command-related SMB transactions
+* Detection opportunities
+
+SMB-based lateral movement is detectable when focusing on behavior patterns, not just individual events...
+Effective detection strategies include:
+
+One host authenticating to many systems in a short timeframe
+Use of administrative shares across multiple endpoints
+Unusual SMB traffic between systems that don’t communicate
+Repeated authentication attempts (successful or failed)
+
+Correlation is key >
+Network traffic + authentication logs + endpoint activity
+
+In SIEM environments, this often involves...
+
+* Event log analysis
+* Network flow monitoring
+* Behavioral baselining
+* Limitations and evasion
+
+Attackers can reduce detection by:
+
+* Using valid credentials (blends in with normal traffic)
+* Moving slowly between systems
+* Targeting only a few hosts at a time
+* Operating during normal business hours
+
+Because SMB is legitimate and widely used, distinguishing malicious from normal activity can be difficult.
+This makes context and anomaly detection critical...
+
+What to do next >
+
+If suspicious SMB activity is identified:
+
+* Validate whether the source system behavior is expected
+* Investigate credential usage and account scope
+* Check for lateral movement patterns across hosts
+* Isolate affected systems if compromise is suspected
+* Reset or rotate credentials involved
+* Review access to administrative shares and restrict where possible
+
+Key takeaway >
+SMB is not inherently insecure... But in real environments, it becomes a powerful attack vector when combined with weak credential practices and implicit trust.
+For defenders, the priority is not just monitoring SMB traffic, but understanding how authentication and trust relationships enable lateral movement
